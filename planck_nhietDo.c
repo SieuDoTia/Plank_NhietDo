@@ -102,7 +102,7 @@ void quetBuocSongChoNhietDo( float nhietDo, float buoc_buocSong, float buocSongC
    float hc_chia_kB_T = hc/(kBOLTZMAN*nhietDo);
 
    // ---- chuẩn bị quét
-   float buocSong = buoc_buocSong;  // Hz
+   float buocSong = buoc_buocSong;  // m
 
    while( buocSong < buocSongCuoi ) {
       // ---- tính
@@ -118,11 +118,37 @@ void quetBuocSongChoNhietDo( float nhietDo, float buoc_buocSong, float buocSongC
 
 }
 
+void quetBuocTanSoChoNhietDo( float nhietDo, float buoc_tanSo, float tanSoCuoi ) {
+   
+   // ---- tính hằng số đầu
+   float c_binh = kTOC_DO_ANH_SANG*kTOC_DO_ANH_SANG;
+   float hc = kPLANK*kTOC_DO_ANH_SANG;
+   float hc_chia_kB_T = hc/(kBOLTZMAN*nhietDo);
+   
+   // ---- chuẩn bị quét
+   float tanSo = buoc_tanSo;  // Hz
+   
+   while( tanSo < tanSoCuoi ) {
+      // ---- tính bước sóng
+      float buocSong = kTOC_DO_ANH_SANG/tanSo;  // m
+
+      // ---- tính
+      float a = hc_chia_kB_T/buocSong;
+      float b = 2.0f*kPLANK*c_binh/(buocSong*buocSong*buocSong*buocSong*buocSong);
+      float congSuc = b/(expf(a) - 1.0);   // W/m^2
+      float phanSo = buocSong*kBOLTZMAN*nhietDo/hc;
+      
+      printf( " %5.3e Hz (%5.3e m)  %5.3e W/(m^3•strad) : %5.3f\n", tanSo, buocSong, congSuc, phanSo );
+      
+      tanSo += buoc_tanSo;
+   }
+}
+
 int main( int argc, char *argv[] ) {
 
-   if( argc > 1 ) {
-       float nhietDo = 5800;    // K
-      float buocSongDau = 1.0e-7;
+   if( argc == 2 ) {
+      float nhietDo = 5800;    // K - cho thử
+      float buocSongDau = 1.0e-7;   // m
       float buocSongCuoi = 2.0e-6;
 
        // ---- nhiệt độ
@@ -147,18 +173,64 @@ int main( int argc, char *argv[] ) {
              nhietDo, (nhietDo - 273.0f) , buocSongDinh, tanSoDinh );
       printf( " Công sức (W/m^2): %5.3e\n", congSuc );
 
-       // ---- tính hằng số đầu
-       float hangSoPhiaTruoc = 2.0f*kPLANK/(kTOC_DO_ANH_SANG*kTOC_DO_ANH_SANG);
-
-       // 
+      // ---- quét
       quetBuocSongChoNhietDo( nhietDo, buocSongDinh*0.1f, buocSongDinh*10.0f );
       
       // -----
       tinhPhanSoBucXa( nhietDo );
 
    }
-   else
-      printf( "Cách sử dụng:\n  ./quangTu_nhietDo <nhiệt độ> <tần số đầu> <tần số cuối>\n\n" );
+   else if( argc == 4 ) {
+
+      float nhietDo = 5800;    // K - cho thử
+      float buocCuaBuocSong = 1.0e-7;   // m
+      float buocSongCuoi = 2.0e-6;
+   
+      // ---- nhiệt độ
+      sscanf( argv[1], "%f", &nhietDo );
+
+      // ---- bước sóng đầu
+      sscanf( argv[2], "%f", &buocCuaBuocSong );
+
+      // ---- bước sóng cuối
+      sscanf( argv[3], "%f", &buocSongCuoi );
+
+      // ---- quét
+      quetBuocSongChoNhietDo( nhietDo, buocCuaBuocSong, buocSongCuoi );
+   }
+   else if( argc == 5 ) {
+      // ==== QUÉT TẦN SỐNG
+      float nhietDoDau = 250;    // K - cho thử
+      float nhietDoCuoi = 300;
+      float buocNhietDo = 10;    // K
+      float buocTanSo = 1.0e12;  // Hz
+      float tanSoCuoi = 50.0e12;
+      
+      // ---- nhiệt độ
+      sscanf( argv[1], "%f", &nhietDoDau );
+      
+      // ---- nhiệt độ
+      sscanf( argv[2], "%f", &nhietDoCuoi );
+      
+      // ---- bước sóng đầu
+      sscanf( argv[3], "%f", &buocTanSo );
+      
+      // ---- tần số cuối
+      sscanf( argv[4], "%f", &tanSoCuoi );
+
+      // ---- quét
+      float nhietDo = nhietDoDau;
+      while( nhietDo < nhietDoCuoi ) {
+         printf( "\n ------ %5.1f K ---------\n", nhietDo );
+         quetBuocTanSoChoNhietDo( nhietDo, buocTanSo, tanSoCuoi );
+         nhietDo += buocNhietDo;
+      }
+   }
+   else {
+      printf( "Cách sử dụng:\n  2: ./quangTu_nhietDo <nhiệt độ> <tần số đầu> <tần số cuối>\n" );
+      printf( "Cách sử dụng:\n  4: ./quangTu_nhietDo <nhiệt độ> <tần số đầu> <tần số cuối>\n" );
+      printf( "Cách sử dụng:\n  5: ./quangTu_nhietDo <nhiệt độ> <tần số đầu> <tần số cuối>\n\n" );
+   }
    return 0;
 }
 
